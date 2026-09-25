@@ -51,20 +51,87 @@ export async function updateEmployee(req, res, next) {
         }
         res.status(200).json(showSuccess("Employee details updated successfully", 200))
     } catch (error) {
-        res.status(400).json(showError("Couldn't update the details of the employee with that ID", 400))
+        console.log(error)
+
+        if (error.code === "23505") {
+            return res.status(409).json(
+                showError("An employee with this email already exists", 409)
+            )
+        }
+    
+        if (error.code === "23514") {
+            return res.status(400).json(
+                showError("Age must be greater than 18", 400)
+            )
+        }
+    
+        return res.status(500).json(
+            showError("Couldn't update employee", 500)
+        )
     }
 }
 
 export async function createEmployee(req, res, next) {
     try {
-        const {name, role, salary, age, email} = req.body
+        const { name, role, salary, age, email } = req.body
+
         if (!name || !salary || !age || !email) {
-            return res.status(400).json(showError("Missing fields", 400))
+            return res.status(400).json(
+                showError("Missing fields", 400)
+            )
         }
-        const data = await query(createEmployeeQuery, [name, email, age, role, salary])
-        return res.status(201).json(showSuccess("Employee successfully created", data.rows[0], 201))
+
+        const data = await query(createEmployeeQuery, [
+            name,
+            email,
+            age,
+            role || null,
+            salary
+        ])
+
+        return res.status(201).json(
+            showSuccess(
+                "Employee successfully created",
+                data.rows[0],
+                201
+            )
+        )
+
     } catch (error) {
         console.log(error.message)
-        return res.status(400).json(showError("Couldn't create that employee", 400)) 
+
+        if (error.code === "23505") {
+            return res.status(409).json(
+                showError(
+                    "An employee with this email already exists",
+                    409
+                )
+            )
+        }
+
+        if (error.code === "23514") {
+            return res.status(400).json(
+                showError(
+                    "Age must be greater than 18",
+                    400
+                )
+            )
+        }
+
+        if (error.code === "22P02") {
+            return res.status(400).json(
+                showError(
+                    "Invalid employee role",
+                    400
+                )
+            )
+        }
+
+        return res.status(500).json(
+            showError(
+                "Couldn't create that employee",
+                500
+            )
+        )
     }
 }
